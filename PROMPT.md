@@ -1,0 +1,1 @@
+Queremos un SAAS de facturación. La autenticación con magic link. Usar frontend-design para la landing page. Mongodb para la base de datos.
