@@ -4,6 +4,16 @@
 ## Resumen / Overview
 Se implementó desde cero un SaaS de facturación completo sobre un proyecto Next.js 16.2.4 recién creado con `create-next-app`. La sesión cubrió las 6 fases planificadas: fundación (DB, auth, email), landing page, dashboard con layout autenticado, CRUD de clientes, CRUD de facturas con líneas dinámicas, generación de PDF y settings. El build final (`npm run build`) compiló exitosamente con todas las 25 rutas registradas.
 
+## Proceso de Creación
+Se inicia con un prompt sencillo `PROMPT.md`, a Claude Code se le indicó  lo siguinte: 
+```
+Usando la skill `microprompt` y el archivo `PROMPT.md`, add al fichero AGENTS.md la especificación.
+```
+Una vez generado el archivo `AGENTS.md`, se le indicó  a Claude Code:
+```
+Usa AGENTS.md e implementa la aplicación.
+```
+
 ## Proceso de instalación / Installation
 
 ### 1. Dependencias instaladas
