@@ -54,13 +54,23 @@ export default function NewInvoicePage() {
           taxRate,
           dueAt: dueDate || undefined,
           notes: notes || undefined,
-          status: asDraft ? 'draft' : 'sent',
+          status: 'draft',
         }),
       })
 
       if (!res.ok) {
         const body = await res.json()
         throw new Error(body.error || 'Failed to create invoice')
+      }
+
+      const { id } = await res.json()
+
+      if (!asDraft) {
+        const sendRes = await fetch(`/api/invoices/${id}/send`, { method: 'POST' })
+        if (!sendRes.ok) {
+          const body = await sendRes.json()
+          throw new Error(body.error || 'Invoice created but failed to send email')
+        }
       }
 
       router.push('/invoices')
@@ -179,7 +189,7 @@ export default function NewInvoicePage() {
             onClick={(e) => handleSubmit(e, false)}
             className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
           >
-            {loading ? 'Creating...' : 'Create & Send'}
+            {loading ? 'Sending...' : 'Create & Send'}
           </button>
         </div>
       </form>

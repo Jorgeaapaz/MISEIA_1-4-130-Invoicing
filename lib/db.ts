@@ -12,7 +12,10 @@ export async function getDb(): Promise<Db> {
   if (!uri) throw new Error('MONGODB_URI is not defined')
   if (!dbName) throw new Error('MONGODB_DB is not defined')
 
-  client = new MongoClient(uri)
+  client = new MongoClient(uri, {
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 5000,
+  })
   await client.connect()
   db = client.db(dbName)
 
