@@ -38,7 +38,8 @@ deploy:
   script:
     - mkdir -p $APP_DIR
     - cp docker-compose.gitlab.yml $APP_DIR/docker-compose.yml
-    - cd $APP_DIR && docker compose up -d --remove-orphans
+    - docker rm -f invoicing-app 2>/dev/null || true
+    - cd $APP_DIR && docker compose up -d --remove-orphans --force-recreate
     - sleep 10 && curl -sf https://invoicing.deviaaps.com -o /dev/null && echo "Health check passed" || echo "Health check pending"
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
