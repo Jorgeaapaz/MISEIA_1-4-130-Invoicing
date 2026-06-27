@@ -386,3 +386,22 @@ GET /api/auth/verify?token=<stale-uuid>
 HTTP 400
 { "error": "Invalid or expired magic link" }
 ```
+
+---
+
+## Updates — 2026-06-27
+
+### Compliance PERT Fixes Applied
+- **`.env.example`** — Added environment variable template (committed to repo); `.gitignore` updated to allow it.
+- **Architecture diagrams** — Added Mermaid system diagram and magic-link auth sequence diagram in `## Architecture` section.
+- **Technical Decisions** — Added 4 documented trade-offs (custom auth, native driver, cents storage, no middleware).
+- **AI-Assisted Development** — Documented 5 specific AI output review points and where manual fixes were applied.
+- **UI Loading & Empty States** — Added `loading.tsx` skeleton loaders and `error.tsx` error boundaries for customers and invoices routes; improved empty states with icons and CTAs.
+- **Jest Unit Tests** — 21 unit tests across `lib/format.ts` and `lib/auth.ts`; run with `npm test`.
+- **Playwright E2E Tests** — 13 E2E tests covering auth flow, API auth enforcement, and landing page; run with `npm run test:e2e`.
+- **Dockerfile** — Multi-stage build with `node:20-alpine`; Next.js `standalone` output enabled in `next.config.ts`.
+- **GitHub Actions CI/CD** — `.github/workflows/ci-cd.yml`: test → build → push to ghcr.io → SSH deploy to GCI VM.
+- **GitLab CI/CD** — `.gitlab-ci.yml`: same pipeline for GitLab; `NODE_ENV=production` only on the build command line.
+- **docker-compose.vm.yml** — VM deployment file with Traefik labels for `invoicing.deviaaps.com`.
+- **Deployment section** — Added production URL, infrastructure table, and manual deploy commands to README.
+- **`docs/compliance/`** — Compliance report, PERT plan, and 12 disciplined prompt files generated for full audit trail.
