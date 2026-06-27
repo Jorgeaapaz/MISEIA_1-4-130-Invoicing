@@ -4,61 +4,50 @@ stages:
   - deploy
 
 variables:
-  DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-  DOCKER_IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
-  APP_DIR: ~/MISEIA1-4-130-invoicing
+  APP_DIR: /home/gcvmuser/MISEIA1-4-130-invoicing
 
+# ── Test ─────────────────────────────────────────────────────────────────────
 test:
   stage: test
-  image: node:20-alpine
-  cache:
-    key: $CI_COMMIT_REF_SLUG
-    paths:
-      - node_modules/
+  tags:
+    - shell
   before_script:
     - npm ci
   script:
     - npm run lint
     - npm test
-  only:
-    - master
-    - merge_requests
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
+# ── Build ─────────────────────────────────────────────────────────────────────
 build:
   stage: build
-  image: docker:24
-  services:
-    - docker:24-dind
+  tags:
+    - shell
   before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
-    - NODE_ENV=production docker build -t $DOCKER_IMAGE -t $DOCKER_IMAGE_LATEST .
-    - docker push $DOCKER_IMAGE
-    - docker push $DOCKER_IMAGE_LATEST
-  only:
-    - master
+    - NODE_ENV=production docker build
+        -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+        -t "$CI_REGISTRY_IMAGE:latest" .
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
 
+# ── Deploy ────────────────────────────────────────────────────────────────────
 deploy:
   stage: deploy
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache openssh-client
-    - mkdir -p ~/.ssh
-    - echo "$VM_SSH_KEY" > ~/.ssh/vboxuser
-    - chmod 600 ~/.ssh/vboxuser
-    - ssh-keyscan -H $VM_HOST >> ~/.ssh/known_hosts
+  tags:
+    - shell
   script:
+    - mkdir -p $APP_DIR
     - |
-      ssh -i ~/.ssh/vboxuser $VM_USER@$VM_HOST << ENDSSH
-        set -e
-        mkdir -p $APP_DIR
-        cd $APP_DIR
-        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-        docker pull $DOCKER_IMAGE_LATEST
-        cat > docker-compose.yml << 'EOF'
+      cat > $APP_DIR/docker-compose.yml << EOF
       services:
         invoicing-app:
-          image: $DOCKER_IMAGE_LATEST
+          image: $CI_REGISTRY_IMAGE:latest
           container_name: invoicing-app
           restart: unless-stopped
           env_file: .env.production
@@ -75,12 +64,13 @@ deploy:
         miseia-net:
           external: true
       EOF
-        docker compose up -d --remove-orphans
-      ENDSSH
-    - sleep 10
-    - 'curl -f https://invoicing.deviaaps.com || echo "Health check: app may still be starting"'
-  only:
-    - master
+    - cd $APP_DIR
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker compose pull
+    - docker compose up -d --remove-orphans
+    - sleep 10 && curl -sf https://invoicing.deviaaps.com -o /dev/null && echo "✓ Health check passed" || echo "Health check pending"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
   environment:
     name: production
     url: https://invoicing.deviaaps.com
