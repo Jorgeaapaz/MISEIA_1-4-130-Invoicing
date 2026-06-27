@@ -65,8 +65,24 @@ export default async function InvoicesPage({
 
       <div className="rounded-xl border border-border/50 bg-surface">
         {invoices.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted">
-            No invoices found.
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-2xl">
+              🧾
+            </div>
+            <h3 className="mb-1 font-semibold">
+              {filterStatus && filterStatus !== 'all' ? `No ${filterStatus} invoices` : 'No invoices yet'}
+            </h3>
+            <p className="mb-5 text-sm text-muted">
+              {filterStatus && filterStatus !== 'all'
+                ? 'Try a different status filter or create a new invoice.'
+                : 'Create your first invoice to get started.'}
+            </p>
+            <Link
+              href="/invoices/new"
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+            >
+              Create invoice
+            </Link>
           </div>
         ) : (
           <div className="divide-y divide-border/50">

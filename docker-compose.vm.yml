@@ -1,0 +1,19 @@
+services:
+  invoicing-app:
+    image: ghcr.io/jorgeaapaz/miseia_1-4-130-invoicing:latest
+    container_name: invoicing-app
+    restart: unless-stopped
+    env_file: .env.production
+    networks:
+      - miseia-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.invoicing.rule=Host(`invoicing.deviaaps.com`)"
+      - "traefik.http.routers.invoicing.entrypoints=websecure"
+      - "traefik.http.routers.invoicing.tls=true"
+      - "traefik.http.routers.invoicing.tls.certresolver=cloudflare"
+      - "traefik.http.services.invoicing.loadbalancer.server.port=3000"
+
+networks:
+  miseia-net:
+    external: true
