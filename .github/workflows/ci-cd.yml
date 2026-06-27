@@ -75,8 +75,6 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
@@ -84,18 +82,38 @@ jobs:
           chmod 600 ~/.ssh/vboxuser
           ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to VM
+      - name: Write .env.production on VM
         run: |
-          ssh -i ~/.ssh/vboxuser ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/vboxuser ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} \
+            "mkdir -p ~/MISEIA1-4-130-invoicing && cat > ~/MISEIA1-4-130-invoicing/.env.production" << 'ENVEOF'
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          MONGODB_DB=${{ secrets.MONGODB_DB }}
+          MAILHOG_HOST=${{ secrets.MAILHOG_HOST }}
+          MAIL_PORT=${{ secrets.MAIL_PORT }}
+          NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          AWS_USERNAME=${{ secrets.AWS_USERNAME }}
+          AWS_PASSWORD=${{ secrets.AWS_PASSWORD }}
+          AWS_REGION=${{ secrets.AWS_REGION }}
+          AWS_URL=${{ secrets.AWS_URL }}
+          AWS_BUCKET=${{ secrets.AWS_BUCKET }}
+          NODE_ENV=production
+          ENVEOF
+
+      - name: Deploy container to VM
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          IMAGE: ghcr.io/${{ github.repository }}:latest
+        run: |
+          ssh -i ~/.ssh/vboxuser ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} bash -s << ENDSSH
             set -e
-            mkdir -p ~/MISEIA1-4-130-invoicing
             cd ~/MISEIA1-4-130-invoicing
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull ghcr.io/${{ github.repository }}:latest
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+            docker pull "${IMAGE}"
             cat > docker-compose.yml << 'EOF'
           services:
             invoicing-app:
-              image: ghcr.io/${{ github.repository }}:latest
+              image: ${IMAGE}
               container_name: invoicing-app
               restart: unless-stopped
               env_file: .env.production
@@ -103,7 +121,7 @@ jobs:
                 - miseia-net
               labels:
                 - "traefik.enable=true"
-                - "traefik.http.routers.invoicing.rule=Host(`invoicing.deviaaps.com`)"
+                - "traefik.http.routers.invoicing.rule=Host(\`invoicing.deviaaps.com\`)"
                 - "traefik.http.routers.invoicing.entrypoints=websecure"
                 - "traefik.http.routers.invoicing.tls=true"
                 - "traefik.http.routers.invoicing.tls.certresolver=cloudflare"
@@ -117,5 +135,5 @@ jobs:
 
       - name: Health check
         run: |
-          sleep 10
-          curl -f https://invoicing.deviaaps.com || echo "Health check failed - app may still be starting"
+          sleep 15
+          curl -f https://invoicing.deviaaps.com || echo "Health check: app may still be starting"

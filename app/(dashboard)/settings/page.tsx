@@ -1,28 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useGlobalContext } from '@/lib/context/GlobalContext'
 
 export default function SettingsPage() {
   const { user, setUser } = useGlobalContext()
-  const [name, setName] = useState('')
-  const [companyName, setCompanyName] = useState('')
-  const [companyAddress, setCompanyAddress] = useState('')
-  const [companyTaxId, setCompanyTaxId] = useState('')
-  const [companyPhone, setCompanyPhone] = useState('')
+  const [name, setName] = useState(user?.name || '')
+  const [companyName, setCompanyName] = useState(user?.company?.name || '')
+  const [companyAddress, setCompanyAddress] = useState(user?.company?.address || '')
+  const [companyTaxId, setCompanyTaxId] = useState(user?.company?.taxId || '')
+  const [companyPhone, setCompanyPhone] = useState(user?.company?.phone || '')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (user) {
-      setName(user.name || '')
-      setCompanyName(user.company?.name || '')
-      setCompanyAddress(user.company?.address || '')
-      setCompanyTaxId(user.company?.taxId || '')
-      setCompanyPhone(user.company?.phone || '')
-    }
-  }, [user])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
