@@ -115,6 +115,7 @@ jobs:
             set -e
             cd ~/MISEIA1-4-130-invoicing
             echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+            docker rm -f invoicing-app 2>/dev/null || true
             docker pull "${IMAGE}"
             cat > docker-compose.yml << 'EOF'
           services:
