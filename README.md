@@ -291,6 +291,13 @@ npm run build    # production build
 npm start        # serve production build
 ```
 
+### Tests
+
+```bash
+npm test                # run all unit tests
+npm run test:coverage   # run tests with coverage report
+```
+
 Open [http://localhost:8025](http://localhost:8025) to view emails captured by Mailhog.
 
 ---
