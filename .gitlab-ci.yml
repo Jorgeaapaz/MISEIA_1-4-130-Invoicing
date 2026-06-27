@@ -25,14 +25,8 @@ build:
   stage: build
   tags:
     - shell
-  before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
-    - NODE_ENV=production docker build
-        -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
-        -t "$CI_REGISTRY_IMAGE:latest" .
-    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
-    - docker push "$CI_REGISTRY_IMAGE:latest"
+    - NODE_ENV=production docker build -t invoicing-app:latest -t invoicing-app:$CI_COMMIT_SHA .
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
 
@@ -43,32 +37,9 @@ deploy:
     - shell
   script:
     - mkdir -p $APP_DIR
-    - |
-      cat > $APP_DIR/docker-compose.yml << EOF
-      services:
-        invoicing-app:
-          image: $CI_REGISTRY_IMAGE:latest
-          container_name: invoicing-app
-          restart: unless-stopped
-          env_file: .env.production
-          networks:
-            - miseia-net
-          labels:
-            - "traefik.enable=true"
-            - "traefik.http.routers.invoicing.rule=Host(\`invoicing.deviaaps.com\`)"
-            - "traefik.http.routers.invoicing.entrypoints=websecure"
-            - "traefik.http.routers.invoicing.tls=true"
-            - "traefik.http.routers.invoicing.tls.certresolver=cloudflare"
-            - "traefik.http.services.invoicing.loadbalancer.server.port=3000"
-      networks:
-        miseia-net:
-          external: true
-      EOF
-    - cd $APP_DIR
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-    - docker compose pull
-    - docker compose up -d --remove-orphans
-    - sleep 10 && curl -sf https://invoicing.deviaaps.com -o /dev/null && echo "✓ Health check passed" || echo "Health check pending"
+    - cp docker-compose.gitlab.yml $APP_DIR/docker-compose.yml
+    - cd $APP_DIR && docker compose up -d --remove-orphans
+    - sleep 10 && curl -sf https://invoicing.deviaaps.com -o /dev/null && echo "Health check passed" || echo "Health check pending"
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
   environment:
