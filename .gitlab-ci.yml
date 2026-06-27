@@ -4,7 +4,7 @@ stages:
   - deploy
 
 variables:
-  APP_DIR: /home/gcvmuser/MISEIA1-4-130-invoicing
+  APP_DIR: /opt/invoicing-app
 
 # ── Test ─────────────────────────────────────────────────────────────────────
 test:
