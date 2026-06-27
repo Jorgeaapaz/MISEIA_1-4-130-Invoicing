@@ -1,6 +1,5 @@
-import type { Config } from 'jest'
-
-const config: Config = {
+/** @type {import('jest').Config} */
+const config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.test.ts'],
@@ -18,4 +17,4 @@ const config: Config = {
   },
 }
 
-export default config
+module.exports = config
