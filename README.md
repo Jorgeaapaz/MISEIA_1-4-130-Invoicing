@@ -116,6 +116,50 @@ export async function verifyMagicLink(token: string): Promise<string | null> {
 
 ---
 
+## Deployment
+
+### Production URL
+**https://invoicing.deviaaps.com** — deployed on GCI VM via Docker + Traefik.
+
+### Infrastructure
+| Component | Details |
+|---|---|
+| VM | GCI Ubuntu 22.04 (`34.174.56.186`) |
+| Container | `invoicing-app` on `miseia-net` Docker network |
+| Reverse proxy | Traefik v3.3 with `*.deviaaps.com` wildcard TLS |
+| Registry | GitHub Container Registry (`ghcr.io`) |
+| CI/CD | GitHub Actions (`.github/workflows/ci-cd.yml`) |
+
+### Automatic Deploy (CI/CD)
+Every push to `master` triggers:
+1. `npm test` — unit tests must pass
+2. Docker image built and pushed to `ghcr.io`
+3. SSH into VM → `docker compose up -d`
+4. Health check on `https://invoicing.deviaaps.com`
+
+### Manual First Deploy
+```bash
+# 1. Copy env.production to VM (one-time setup)
+scp -i ~/.ssh/vboxuser docs/compliance/env.production \
+  gcvmuser@34.174.56.186:~/MISEIA1-4-130-invoicing/.env.production
+
+# 2. Build and push image
+docker build -t ghcr.io/jorgeaapaz/miseia_1-4-130-invoicing:latest .
+docker push ghcr.io/jorgeaapaz/miseia_1-4-130-invoicing:latest
+
+# 3. SSH and deploy
+ssh -i ~/.ssh/vboxuser gcvmuser@34.174.56.186 \
+  "cd ~/MISEIA1-4-130-invoicing && docker compose -f docker-compose.vm.yml up -d"
+
+# 4. Verify
+curl -f https://invoicing.deviaaps.com
+```
+
+### Production Environment Variables
+See `docs/compliance/env.production` — copy to VM as `.env.production` before first deploy. Never commit this file (it's in `.dockerignore`).
+
+---
+
 ## Architecture
 
 ### System Components

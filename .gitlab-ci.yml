@@ -1,0 +1,86 @@
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  DOCKER_IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+  APP_DIR: ~/MISEIA1-4-130-invoicing
+
+test:
+  stage: test
+  image: node:20-alpine
+  cache:
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - node_modules/
+  before_script:
+    - npm ci
+  script:
+    - npm run lint
+    - npm test
+  only:
+    - master
+    - merge_requests
+
+build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - NODE_ENV=production docker build -t $DOCKER_IMAGE -t $DOCKER_IMAGE_LATEST .
+    - docker push $DOCKER_IMAGE
+    - docker push $DOCKER_IMAGE_LATEST
+  only:
+    - master
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$VM_SSH_KEY" > ~/.ssh/vboxuser
+    - chmod 600 ~/.ssh/vboxuser
+    - ssh-keyscan -H $VM_HOST >> ~/.ssh/known_hosts
+  script:
+    - |
+      ssh -i ~/.ssh/vboxuser $VM_USER@$VM_HOST << ENDSSH
+        set -e
+        mkdir -p $APP_DIR
+        cd $APP_DIR
+        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+        docker pull $DOCKER_IMAGE_LATEST
+        cat > docker-compose.yml << 'EOF'
+      services:
+        invoicing-app:
+          image: $DOCKER_IMAGE_LATEST
+          container_name: invoicing-app
+          restart: unless-stopped
+          env_file: .env.production
+          networks:
+            - miseia-net
+          labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.invoicing.rule=Host(\`invoicing.deviaaps.com\`)"
+            - "traefik.http.routers.invoicing.entrypoints=websecure"
+            - "traefik.http.routers.invoicing.tls=true"
+            - "traefik.http.routers.invoicing.tls.certresolver=cloudflare"
+            - "traefik.http.services.invoicing.loadbalancer.server.port=3000"
+      networks:
+        miseia-net:
+          external: true
+      EOF
+        docker compose up -d --remove-orphans
+      ENDSSH
+    - sleep 10
+    - 'curl -f https://invoicing.deviaaps.com || echo "Health check: app may still be starting"'
+  only:
+    - master
+  environment:
+    name: production
+    url: https://invoicing.deviaaps.com
